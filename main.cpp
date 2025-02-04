@@ -6,5 +6,7 @@ int main() {
 
     chip8.load_rom(R"(D:\Projects\CHIP8 Emulator\roms\IBM Logo.ch8)");
 
+    chip8.emulate();
+
     return 0;
 }

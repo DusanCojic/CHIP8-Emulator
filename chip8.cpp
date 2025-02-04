@@ -56,17 +56,100 @@ bool Chip8::load_rom(std::string path) {
         return false;
     }
 
-    uint16_t start_addr = 0x200; // start address in memory
+    uint16_t addr = 0x200; // start address in memory
     char ch;
     while (rom.read(&ch, 1)) {
-        if (start_addr > 4096)
+        if (addr > 4096)
             return false;
 
         uint8_t byte = (uint8_t)ch;
-        memory[start_addr++] = byte;
+        memory[addr++] = byte;
     }
 
     return true;
+}
+
+void Chip8::single_cycle() {
+    uint16_t op = memory[pc] << 8 | memory[pc + 1];
+
+    uint16_t addr;
+    uint8_t reg, reg1, reg2, val;
+
+    uint8_t op_code = op >> 12;
+    switch (op_code) {
+        case 0:
+            switch (op) {
+                case 0x00E0:
+                    memset(display, 0, sizeof(display));
+
+                    break;
+            }
+
+            pc += 2;
+            break;
+
+        case 1:
+            addr = op & 0x0FFF;
+            pc = addr;
+
+            break;
+
+        case 6:
+            reg = op & 0x0F00;
+            val = op & 0x00FF;
+
+            v[reg] = val;
+
+            pc += 2;
+            break;
+
+        case 7:
+            reg = op & 0x0F00;
+            val = op & 0x00FF;
+
+            v[reg] += val;
+
+            pc += 2;
+            break;
+
+        case 10:
+            addr = op & 0x0FFF;
+            index = addr;
+
+            pc += 2;
+            break;
+
+        case 13:
+            reg1 = op & 0x0F00;
+            reg2 = op & 0x00F0;
+
+            uint16_t sprite_addr = index;
+
+            int x = v[reg1] % 64, y = v[reg2] % 32;
+            uint8_t height = op & 0x000F;
+            uint8_t width = 8;
+            v[0xF] = 0;
+
+            for (int i = 0; i < height; i++) {
+                uint8_t pixel = memory[sprite_addr + i];
+
+                for (int j = 0; j < width; j++) {
+                    if ((pixel & (0x80 >> j)) != 0) {
+                        if (display[y + i][x + j] == 1)
+                            v[0xF] = 1;
+
+                        display[y + i][x + j] ^= 1;
+                    }
+                }
+            }
+
+            pc += 2;
+            break;
+    }
+}
+
+void Chip8::emulate() {
+    
 }
 
 #endif

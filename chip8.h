@@ -5,7 +5,7 @@
 class Chip8 {
 private:
     uint8_t memory[4096]; // 4KB of memory
-    bool display[64][32]; // monochomatic 64x32 diplsay
+    bool display[32][64]; // monochomatic 32x64 diplsay
 
     uint16_t pc; // program counter
     uint16_t index; // index register
@@ -20,18 +20,12 @@ private:
 
     bool keyboard[4][4]; // keyboard grid
 
+
+    void single_cycle(); // emulates single cycle of the CPU
 public:
     Chip8(); // constructor
 
     bool load_rom(std::string); // loading the rom file
 
-    void single_cycle(); // emulates single cycle of the CPU
-
-    // instructions
-    void clear_scr();
-    void jump();
-    void set_VX();
-    void add_to_VX();
-    void set_index();
-    void draw();
+    void emulate(); // emulate the process
 };
