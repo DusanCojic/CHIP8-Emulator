@@ -4,6 +4,7 @@
 #include "chip8.h"
 
 #include <fstream>
+#include <SDL3/SDL.h>
 
 Chip8::Chip8() {
     // fontset values
@@ -95,7 +96,7 @@ void Chip8::single_cycle() {
             break;
 
         case 6:
-            reg = op & 0x0F00;
+            reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
             v[reg] = val;
@@ -104,7 +105,7 @@ void Chip8::single_cycle() {
             break;
 
         case 7:
-            reg = op & 0x0F00;
+            reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
             v[reg] += val;
@@ -120,25 +121,28 @@ void Chip8::single_cycle() {
             break;
 
         case 13:
-            reg1 = op & 0x0F00;
-            reg2 = op & 0x00F0;
-
-            uint16_t sprite_addr = index;
-
-            int x = v[reg1] % 64, y = v[reg2] % 32;
-            uint8_t height = op & 0x000F;
+            reg1 = (op & 0x0F00) >> 8;
+            reg2 = (op & 0x00F0) >> 4;
+            uint8_t height = op & 0x000F; // N
             uint8_t width = 8;
-            v[0xF] = 0;
+
+            int x = v[reg1];
+            int y = v[reg2];
+
+            v[0xF] = 0;  // Reset collision flag
 
             for (int i = 0; i < height; i++) {
-                uint8_t pixel = memory[sprite_addr + i];
+                uint8_t pixel = memory[index + i];
 
                 for (int j = 0; j < width; j++) {
                     if ((pixel & (0x80 >> j)) != 0) {
-                        if (display[y + i][x + j] == 1)
+                        int xpos = (x + j) % 64;
+                        int ypos = (y + i) % 32;
+
+                        if (display[ypos][xpos] == 1)
                             v[0xF] = 1;
 
-                        display[y + i][x + j] ^= 1;
+                        display[ypos][xpos] ^= 1;
                     }
                 }
             }
@@ -149,7 +153,46 @@ void Chip8::single_cycle() {
 }
 
 void Chip8::emulate() {
-    
+    SDL_Init(SDL_INIT_VIDEO);
+
+    SDL_Window* window = SDL_CreateWindow("CHIP8", 640, 320, 0);
+
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
+
+    bool running = true;
+    SDL_Event event;
+
+    const int PIXEL_SIZE = 10;
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT)
+                running = false;
+        }
+
+        single_cycle();
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        // draw pixels
+        for (int y = 0; y < 32; y++) {
+            for (int x = 0; x < 64; x++) {
+                if (display[y][x] == 1)
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // white
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black
+
+                SDL_FRect rect = { (float)(x * PIXEL_SIZE), (float)(y * PIXEL_SIZE), PIXEL_SIZE, PIXEL_SIZE };
+                SDL_RenderFillRect(renderer, &rect);
+            }
+        }
+
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 }
 
 #endif
