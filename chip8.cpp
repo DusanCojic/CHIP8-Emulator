@@ -37,6 +37,7 @@ Chip8::Chip8() {
     memset(keyboard, 0, sizeof(keyboard)); // initialize keyboard to 0
     memset(memory, 0, sizeof(memory)); // initialize memory to 0
     memset(display, 0, sizeof(display)); // initialize empty display
+    draw_flag = false;
 
     sp = 0; // first empty stack location
     memset(stack, 0, sizeof(stack)); // initialize empty stack
@@ -82,6 +83,7 @@ void Chip8::single_cycle() {
             switch (op) {
                 case 0x00E0:
                     memset(display, 0, sizeof(display));
+                    draw_flag = true;
 
                     break;
             }
@@ -105,6 +107,7 @@ void Chip8::single_cycle() {
             break;
 
         case 7:
+
             reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
@@ -121,11 +124,12 @@ void Chip8::single_cycle() {
             break;
 
         case 13:
-            reg1 = (op & 0x0F00) >> 8;
-            reg2 = (op & 0x00F0) >> 4;
+            reg1 = (op & 0x0F00) >> 8; // register where X coordinate is stored
+            reg2 = (op & 0x00F0) >> 4; // register where Y coorfinate is stored
             uint8_t height = op & 0x000F; // N
-            uint8_t width = 8;
+            uint8_t width = 8; // every sprite is 8 pixels wide
 
+            // read coordinates
             int x = v[reg1];
             int y = v[reg2];
 
@@ -136,60 +140,69 @@ void Chip8::single_cycle() {
 
                 for (int j = 0; j < width; j++) {
                     if ((pixel & (0x80 >> j)) != 0) {
+                        // calculate coorinates
                         int xpos = (x + j) % 64;
                         int ypos = (y + i) % 32;
 
+                        // if pixel was changed from set to unset, set collision flag
                         if (display[ypos][xpos] == 1)
                             v[0xF] = 1;
 
+                        // xoring
                         display[ypos][xpos] ^= 1;
                     }
                 }
             }
 
+            // set draw flag
+            draw_flag = true;
             pc += 2;
             break;
     }
 }
 
 void Chip8::emulate() {
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO); // initializing SDL
 
-    SDL_Window* window = SDL_CreateWindow("CHIP8", 640, 320, 0);
+    SDL_Window* window = SDL_CreateWindow("CHIP8", 640, 320, 0); // creating a window
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL); // createing a window renderer
 
     bool running = true;
     SDL_Event event;
 
-    const int PIXEL_SIZE = 10;
+    const int PIXEL_SIZE = 10; // upcale 1 pixel to 10 for bigger picture
     while (running) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT)
+            if (event.type == SDL_EVENT_QUIT) // if close button pressed
                 running = false;
         }
 
-        single_cycle();
+        single_cycle(); // emulate one cycle
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
         // draw pixels
-        for (int y = 0; y < 32; y++) {
-            for (int x = 0; x < 64; x++) {
-                if (display[y][x] == 1)
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // white
-                else
-                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black
+        if (draw_flag) {
+            for (int y = 0; y < 32; y++) {
+                for (int x = 0; x < 64; x++) {
+                    if (display[y][x] == 1)
+                        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // white
+                    else
+                        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black
 
-                SDL_FRect rect = { (float)(x * PIXEL_SIZE), (float)(y * PIXEL_SIZE), PIXEL_SIZE, PIXEL_SIZE };
-                SDL_RenderFillRect(renderer, &rect);
+                    SDL_FRect rect = { (float)(x * PIXEL_SIZE), (float)(y * PIXEL_SIZE), PIXEL_SIZE, PIXEL_SIZE }; // create rectangle
+                    SDL_RenderFillRect(renderer, &rect); // draw rectangle
+                }
             }
-        }
 
-        SDL_RenderPresent(renderer);
+            draw_flag = false; // reset drawing flag
+            SDL_RenderPresent(renderer);
+        }
     }
 
+    // Destroy all SDL components
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

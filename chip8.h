@@ -6,6 +6,7 @@ class Chip8 {
 private:
     uint8_t memory[4096]; // 4KB of memory
     bool display[32][64]; // monochomatic 32x64 diplsay
+    bool draw_flag; // not to rerender if display did not change
 
     uint16_t pc; // program counter
     uint16_t index; // index register
