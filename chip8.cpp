@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <random>
 
+// mapping keycodes with indexes
 const uint8_t keymap[16] = {
     SDL_SCANCODE_1,
     SDL_SCANCODE_2,
@@ -84,14 +85,14 @@ bool Chip8::load_rom(std::string path) {
             return false;
 
         uint8_t byte = (uint8_t)ch;
-        memory[addr++] = byte;
+        memory[addr++] = byte; // write byte to memory
     }
 
     return true;
 }
 
 void Chip8::single_cycle() {
-    uint16_t op = (memory[pc] << 8) | memory[pc + 1];
+    uint16_t op = (memory[pc] << 8) | memory[pc + 1]; // reading operation code
 
     uint16_t addr;
     uint8_t reg, reg1, reg2, val;
@@ -104,6 +105,7 @@ void Chip8::single_cycle() {
         case 0:
             switch (op) {
                 case 0x00E0:
+                    // 00E0 - clear the display
                     memset(display, 0, sizeof(display));
                     draw_flag = true;
 
@@ -111,6 +113,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 0x00EE:
+                    // 00EE - returns from subrutine
                     if (sp > 0) {
                         sp--;
                         pc = stack[sp];
@@ -123,12 +126,14 @@ void Chip8::single_cycle() {
             break;
 
         case 1:
+            // 1NNN - Jumps to address NNN
             addr = op & 0x0FFF;
             pc = addr;
 
             break;
 
         case 2:
+            // 2NNN - Calls subrutine at NNN
             addr = op & 0x0FFF;
             if (sp < 16) {
                 stack[sp] = pc;
@@ -140,6 +145,7 @@ void Chip8::single_cycle() {
             break;
 
         case 3:
+            // 3XNN - Skips the next instruction if VX equals NN
             reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
@@ -150,6 +156,7 @@ void Chip8::single_cycle() {
             break;
 
         case 4:
+            // 4XNN - Skips the next instruction if VX does not equal NN
             reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
@@ -160,6 +167,7 @@ void Chip8::single_cycle() {
             break;
 
         case 5:
+            // 5XY0 - Skips the next instruction if VX equals VY
             reg1 = (op & 0x0F00) >> 8;
             reg2 = (op & 0x00F0) >> 4;
 
@@ -170,6 +178,7 @@ void Chip8::single_cycle() {
             break;
 
         case 6:
+            // 6XNN - Set VX to NN
             reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
@@ -179,6 +188,7 @@ void Chip8::single_cycle() {
             break;
 
         case 7:
+            // 7XNN - Adds NN to VX (carry flag is not changed)
             reg = (op & 0x0F00) >> 8;
             val = op & 0x00FF;
 
@@ -191,6 +201,7 @@ void Chip8::single_cycle() {
             op_subcode = op & 0x000F; // last 4 bits
             switch (op_subcode) {
                 case 0:
+                    // 8XY0 - Sets VX to the values of VY
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -200,6 +211,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 1:
+                    // 8XY1 - Sets VX to VX | VY
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -210,6 +222,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 2:
+                    // 8XY2 - Sets VX to VX & VY
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -220,6 +233,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 3:
+                    // 8XY3 - Sets VX to VX ^ VY
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -229,7 +243,8 @@ void Chip8::single_cycle() {
                     pc += 2;
                     break;
 
-                case 4: {
+                case 4:
+                    // 8XY4 - Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -243,9 +258,9 @@ void Chip8::single_cycle() {
 
                     pc += 2;
                     break;
-                }
 
                 case 5:
+                    // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -260,6 +275,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 6:
+                    // 8XY6 - Shifts VX to the right by 1 and stores the least significant bit of VX prior to the shift into VF
                     reg = (op & 0x0F00) >> 8;
 
                     v[0xF] = v[reg] & 0x01; 
@@ -269,6 +285,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 7:
+                    // 8XY7 - Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not.
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
@@ -283,6 +300,8 @@ void Chip8::single_cycle() {
                     break;
 
                 case 14:
+                    // 8XYE - Shifts VX to the left by 1 and sets VF to 1 if the most significant bit of VX prior to that shift was set, 
+                    // or to 0 if it was unset.
                     reg = (op & 0x0F00) >> 8;
 
                     v[0xF] = (uint8_t)(v[reg] >> 7);
@@ -295,6 +314,7 @@ void Chip8::single_cycle() {
             break;
 
         case 9:
+            // 9XY0 - Skips the next instruction if VX does not equal VY.
             reg1 = (op & 0x0F00) >> 8;
             reg2 = (op & 0x00F0) >> 4;
 
@@ -305,6 +325,7 @@ void Chip8::single_cycle() {
             break;
 
         case 10:
+            // ANNN - Sets I to the address NNN
             addr = op & 0x0FFF;
             index = addr;
 
@@ -312,12 +333,14 @@ void Chip8::single_cycle() {
             break;
         
         case 11:
+            // BNNN - Jumps to the address NNN plus V0
             addr = op & 0x0FFF;
             pc = addr + v[0];
 
             break;
 
         case 12:
+            // CXNN - Sets VX to the result of a bitwise and operation on a random number
             reg = (op & 0x0F00) >> 8;
             mask = op & 0x00FF;
 
@@ -330,6 +353,7 @@ void Chip8::single_cycle() {
             break;
 
         case 13: {
+            // DXYN - Draws a sprite at coordinate (VX, VY) that is 8 pixels wide and N pixels long
             reg1 = (op & 0x0F00) >> 8; // register where X coordinate is stored
             reg2 = (op & 0x00F0) >> 4; // register where Y coorfinate is stored
             uint8_t height = op & 0x000F; // N
@@ -370,6 +394,7 @@ void Chip8::single_cycle() {
             op_subcode = op & 0x00FF;
             switch (op_subcode) {
                 case 0x9E:
+                    // EX9E - Skips the next instruction if the key stored in VX is pressed
                     reg = (op & 0x0F00) >> 8; // key
 
                     if (keyboard[v[reg]] == 1)
@@ -379,6 +404,7 @@ void Chip8::single_cycle() {
                     break;
 
                 case 0xA1:
+                    // EXA1 - Skips the next instruction if the key stored in VX is not pressed
                     reg = (op & 0x0F00) >> 8; // key
                     if (keyboard[v[reg]] == 0)
                         pc += 2;
@@ -393,6 +419,7 @@ void Chip8::single_cycle() {
             op_subcode = op & 0x00FF;
             switch (op_subcode) {
                 case 0x07: {
+                    // FX07 - Sets VX to the value of the delay timer
                     reg = (op & 0x0F00) >> 8;
                     v[reg] = delay_timer;
 
@@ -401,6 +428,9 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x0A: {
+                    // FX0A - A key press is awaited, and then stored in VX 
+                    // (blocking operation, all instruction halted until next key event, 
+                    // delay and sound timers should continue processing)
                     reg = (op & 0x0F00) >> 8;
                     bool key_pressed = false;
 
@@ -418,6 +448,7 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x15: {
+                    // FX15 - Sets the delay timer to VX
                     reg = (op & 0x0F00) >> 8;
                     delay_timer = v[reg];
 
@@ -426,6 +457,7 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x18: {
+                    // FX18 - Sets the sound timer to VX
                     reg = (op & 0x0F00) >> 8;
                     sound_timer = v[reg];
 
@@ -434,6 +466,7 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x1E: {
+                    // FX1E - Adds VX to I
                     reg = (op & 0x0F00) >> 8;
 
                     if (index + v[reg] > 0xFFF)
@@ -448,6 +481,7 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x29: {
+                    // FX29 - Sets I to the location of the sprite for the character in VX
                     reg = (op & 0x0F00) >> 8;
                     index = 0x050 + v[reg] * 0x5; // each char is 5 locations long
 
@@ -456,6 +490,9 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x33: {
+                    // FX33 - Stores the binary-coded decimal representation of VX, 
+                    // with the hundreds digit in memory at location in I, 
+                    // the tens digit at location I+1, and the ones digit at location I+2.
                     reg = (op & 0x0F00) >> 8;
 
                     // 255 -> memory[index] = 2, memory[index + 1] = 5, memory[index + 2] = 5
@@ -468,6 +505,7 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x55: {
+                    // FX55 - Stores from V0 to VX (including VX) in memory, starting at address I
                     reg = (op & 0x0F00) >> 8;
 
                     for (int i = 0; i <= reg; i++) {
@@ -481,6 +519,7 @@ void Chip8::single_cycle() {
                 }
 
                 case 0x65: {
+                    // FX65 - Fills from V0 to VX (including VX) with values from memory, starting at address I
                     reg = (op & 0x0F00) >> 8;
 
                     for (int i = 0; i <= reg; i++)
@@ -497,6 +536,7 @@ void Chip8::single_cycle() {
         }
     }
 
+    // decreasing timers
     if (delay_timer > 0) delay_timer--;
     if (sound_timer > 0) sound_timer--;
 }
