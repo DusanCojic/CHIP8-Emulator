@@ -97,6 +97,7 @@ void Chip8::single_cycle() {
     uint16_t addr;
     uint8_t reg, reg1, reg2, val;
     uint8_t op_subcode;
+    uint16_t temp;
 
     uint8_t mask, rnd;
 
@@ -248,13 +249,15 @@ void Chip8::single_cycle() {
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
-                    if (v[reg1] + v[reg2] > 0xFF)
-                        v[0xF] = 1;
-                    else
-                        v[0xF] = 0;
+                    temp = v[reg1] + v[reg2];
 
                     v[reg1] += v[reg2];
                     v[reg1] = (uint8_t)v[reg1];
+
+                    if (temp > 0xFF)
+                        v[0xF] = 1;
+                    else
+                        v[0xF] = 0;
 
                     pc += 2;
                     break;
@@ -264,22 +267,26 @@ void Chip8::single_cycle() {
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
 
-                    if (v[reg1] < v[reg2])
+                    temp = v[reg1];
+                    v[reg1] = (uint8_t)(v[reg1] - v[reg2]);
+
+                    if ((uint8_t)temp < v[reg2])
                         v[0xF] = 0;
                     else
                         v[0xF] = 1;
-
-                    v[reg1] = (uint8_t)(v[reg1] - v[reg2]);
 
                     pc += 2;
                     break;
 
                 case 6:
                     // 8XY6 - Shifts VX to the right by 1 and stores the least significant bit of VX prior to the shift into VF
-                    reg = (op & 0x0F00) >> 8;
+                    reg1 = (op & 0x0F00) >> 8;
+                    reg2 = (op & 0x00F0) >> 4;
 
-                    v[0xF] = v[reg] & 0x01; 
-                    v[reg] >>= 1;
+                    v[reg1] = v[reg2];
+                    temp = (uint16_t)(v[reg1] & 0x01);
+                    v[reg1] >>= 1;
+                    v[0xF] = (uint8_t)temp;
 
                     pc += 2;
                     break;
@@ -288,13 +295,13 @@ void Chip8::single_cycle() {
                     // 8XY7 - Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not.
                     reg1 = (op & 0x0F00) >> 8;
                     reg2 = (op & 0x00F0) >> 4;
+                    
+                    v[reg1] = (uint8_t)(v[reg2] - v[reg1]);
 
-                    if (v[reg1] > v[reg2])
+                     if (v[reg1] > v[reg2])
                         v[0xF] = 0;
                     else
                         v[0xF] = 1;
-                    
-                    v[reg1] = (uint8_t)(v[reg2] - v[reg1]);
 
                     pc += 2;
                     break;
@@ -302,10 +309,13 @@ void Chip8::single_cycle() {
                 case 14:
                     // 8XYE - Shifts VX to the left by 1 and sets VF to 1 if the most significant bit of VX prior to that shift was set, 
                     // or to 0 if it was unset.
-                    reg = (op & 0x0F00) >> 8;
+                    reg1 = (op & 0x0F00) >> 8;
+                    reg2 = (op & 0x00F0) >> 4;
 
-                    v[0xF] = (uint8_t)(v[reg] >> 7);
-                    v[reg] <<= 1;
+                    v[reg1] = v[reg2];
+                    temp = (uint16_t)(v[reg1] >> 7);
+                    v[reg1] <<= 1;
+                    v[0xF] = (uint8_t)temp;
 
                     pc += 2;
                     break;
@@ -468,12 +478,7 @@ void Chip8::single_cycle() {
                 case 0x1E: {
                     // FX1E - Adds VX to I
                     reg = (op & 0x0F00) >> 8;
-
-                    if (index + v[reg] > 0xFFF)
-                        v[0xF] = 1;
-                    else
-                        v[0xF] = 0;
-
+                    
                     index = (uint16_t)(index + v[reg]);
 
                     pc += 2;
