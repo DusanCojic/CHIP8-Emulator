@@ -1,3 +1,6 @@
+#ifndef CHIP8_H
+#define CHIP8_H
+
 #include <iostream>
 #include <cstdint>
 #include <cstring>
@@ -19,7 +22,7 @@ private:
     uint8_t delay_timer;
     uint8_t sound_timer;
 
-    bool keyboard[4][4]; // keyboard grid
+    bool keyboard[16]; // keyboard array
 
 
     void single_cycle(); // emulates single cycle of the CPU
@@ -30,3 +33,5 @@ public:
 
     void emulate(); // emulate the process
 };
+
+#endif
