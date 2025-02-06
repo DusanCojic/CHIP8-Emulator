@@ -1,6 +1,6 @@
 # CHIP-8 Emulator
 
-This is a CHIP-8 emulator written in C++. CHIP-8 is an interpreted programming language used on early home computers, notably the COSMAC VIP and Telmac 1800. The emulator allows you to run CHIP-8 games and programs, emulating the original hardware functionality on modern systems.
+This is a CHIP-8 emulator written in C++ using SDL3 for graphics. CHIP-8 is an interpreted programming language used on early home computers, notably the COSMAC VIP and Telmac 1800. The emulator allows you to run CHIP-8 games and programs, emulating the original hardware functionality on modern systems.
 
 ## Features
 
@@ -8,6 +8,7 @@ This is a CHIP-8 emulator written in C++. CHIP-8 is an interpreted programming l
 - Loads and runs CHIP-8 ROM files.
 - Simple graphics display with a 64x32 pixel resolution.
 - Keyboard input mapping to simulate the CHIP-8 keypad.
+- Sound has not yet been implemented
 
 ## Architecture
 
@@ -22,7 +23,7 @@ The CHIP-8 architecture consists of the following components:
 
 ## CHIP-8 Instruction Set
 
-Here’s the complete CHIP-8 instruction set, formatted in a table:
+Here’s the complete CHIP-8 instruction set:
 
 | Opcode  | Instruction                                | Description |
 | ------- | ------------------------------------------ | ----------- |
